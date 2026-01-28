@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moto Log - Dashboard</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --success: #16a34a;
+            --bg: #f8fafc;
+            --text: #1e293b;
+        }
+
+        body {
+            font-family: -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0; padding: 16px;
+            display: flex; flex-direction: column; align-items: center;
+        }
+
+        .container { width: 100%; max-width: 400px; }
+        header { text-align: center; margin-bottom: 20px; }
+        header h1 { font-size: 1.4rem; color: var(--primary); margin: 0; }
+
+        .card {
+            background: white; padding: 20px; border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); margin-bottom: 16px;
+        }
+
+        .input-group { margin-bottom: 12px; }
+        label { display: block; font-size: 0.75rem; font-weight: bold; margin-bottom: 4px; color: #64748b; }
+        
+        input {
+            width: 100%; padding: 12px; font-size: 1rem;
+            border: 1px solid #e2e8f0; border-radius: 8px; box-sizing: border-box;
+        }
+
+        button {
+            width: 100%; padding: 14px; background-color: var(--success);
+            color: white; border: none; border-radius: 8px;
+            font-size: 1rem; font-weight: bold; cursor: pointer;
+        }
+
+        button:disabled { background-color: #94a3b8; }
+
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+        .stat-box { background: #f1f5f9; padding: 12px; border-radius: 10px; text-align: center; }
+        .stat-value { display: block; font-size: 1rem; font-weight: bold; color: var(--primary); }
+        .stat-label { font-size: 0.65rem; color: #64748b; text-transform: uppercase; }
+
+        #status-msg { text-align: center; font-size: 0.85rem; margin-top: 10px; font-weight: 500; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header><h1>🏍️ Moto Log</h1></header>
+
+        <div class="card">
+            <label>Relatórios da Planilha</label>
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <span class="stat-label">Média km/l</span>
+                    <span id="res-media" class="stat-value">--</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">Diário Médio</span>
+                    <span id="res-diario" class="stat-value">R$ --</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">Real Semanal</span>
+                    <span id="res-semanal" class="stat-value">R$ --</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">Real Mensal</span>
+                    <span id="res-mensal" class="stat-value">R$ --</span>
+                </div>
+            </div>
+            <div id="status-msg">Carregando dados...</div>
+        </div>
+
+        <div class="card">
+            <div class="input-group">
+                <label>Odômetro (km)</label>
+                <input type="number" id="km" inputmode="numeric" placeholder="Ex: 15420">
+            </div>
+            <div class="input-group">
+                <label>Litros</label>
+                <input type="number" id="litros" step="0.01" inputmode="decimal" placeholder="Ex: 8.5">
+            </div>
+            <div class="input-group">
+                <label>Total Pago (R$)</label>
+                <input type="number" id="valor" step="0.01" inputmode="decimal" placeholder="Ex: 45.00">
+            </div>
+            <button id="btnSalvar" onclick="enviarDados()">Salvar Abastecimento</button>
+        </div>
+    </div>
+
+    <script>
+        // SUBSTITUA PELA SUA URL DE IMPLANTAÇÃO
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxxU3yZjK8Fc8A6_3VjZkl06w3fh9rk2ZsEUoTvkczi3VNuQ87txmsmvXMfKpOBnT5TQw/exec";
+
+        // Inicia carregando os dados da planilha
+        window.onload = carregarDados;
+
+        async function carregarDados() {
+            const status = document.getElementById('status-msg');
+            try {
+                const response = await fetch(SCRIPT_URL);
+                const dados = await response.json();
+                if (dados && dados.length > 0) {
+                    processarRelatorios(dados);
+                    status.innerText = "Sincronizado com a planilha";
+                    status.style.color = "var(--success)";
+                } else {
+                    status.innerText = "Planilha vazia. Aguardando dados.";
+                }
+            } catch (e) {
+                status.innerText = "Offline ou Erro de Permissão (403)";
+                status.style.color = "red";
+            }
+        }
+
+        function processarRelatorios(historico) {
+            // Médias km/l
+            if (historico.length >= 2) {
+                const u = historico[historico.length - 1]; // Último
+                const p = historico[historico.length - 2]; // Penúltimo
+                const media = (u[1] - p[1]) / u[2];
+                document.getElementById('res-media').innerText = media.toFixed(2);
+            }
+
+            // Gastos
+            const hoje = new Date();
+            let semanal = 0, mensal = 0;
+
+            historico.forEach(linha => {
+                const dataRow = new Date(linha[0]);
+                const valor = parseFloat(linha[3]);
+                const diffDias = (hoje - dataRow) / (1000 * 60 * 60 * 24);
+
+                if (diffDias <= 7) semanal += valor;
+                if (diffDias <= 30) mensal += valor;
+            });
+
+            document.getElementById('res-semanal').innerText = "R$ " + semanal.toFixed(2);
+            document.getElementById('res-mensal').innerText = "R$ " + mensal.toFixed(2);
+            document.getElementById('res-diario').innerText = "R$ " + (mensal / 30).toFixed(2);
+        }
+
+        async function enviarDados() {
+            const btn = document.getElementById('btnSalvar');
+            const payload = {
+                km: document.getElementById('km').value,
+                litros: document.getElementById('litros').value,
+                valor: document.getElementById('valor').value
+            };
+
+            if (!payload.km || !payload.litros || !payload.valor) return alert("Preencha tudo!");
+
+            btn.disabled = true;
+            document.getElementById('status-msg').innerText = "Enviando...";
+
+            try {
+                await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: JSON.stringify(payload)
+                });
+                
+                alert("Registrado! Atualize a página para ver os novos cálculos.");
+                location.reload(); // Recarrega para buscar os novos dados e atualizar médias
+            } catch (e) {
+                alert("Erro ao salvar.");
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
