@@ -2,180 +2,166 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Moto Log - Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Moto Log Pro</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
-            --primary: #2563eb;
-            --success: #16a34a;
-            --bg: #f8fafc;
-            --text: #1e293b;
+            --primary: #2563eb; --success: #16a34a; --warning: #eab308;
+            --danger: #ef4444; --bg: #f1f5f9; --card: #ffffff; --text: #1e293b;
         }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; }
+        .container { width: 100%; max-width: 450px; padding-bottom: 80px; }
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        header h1 { font-size: 1.2rem; margin: 0; color: var(--primary); }
+        .card { background: var(--card); padding: 16px; border-radius: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 16px; }
+        .card-title { font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 12px; display: block; }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .stat-box { background: #f8fafc; padding: 12px; border-radius: 12px; border: 1px solid #f1f5f9; }
+        .stat-val { display: block; font-size: 1.1rem; font-weight: 800; }
+        .stat-label { font-size: 0.65rem; color: #64748b; }
+        .progress-bar { background: #e2e8f0; height: 10px; border-radius: 10px; margin: 8px 0; overflow: hidden; }
+        #oil-progress { background: var(--warning); height: 100%; width: 0%; transition: width 1s; }
+        canvas { max-height: 160px; }
+        .history-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f1f5f9; font-size: 0.85rem; }
 
-        body {
-            font-family: -apple-system, sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
-            margin: 0; padding: 16px;
-            display: flex; flex-direction: column; align-items: center;
-        }
-
-        .container { width: 100%; max-width: 400px; }
-        header { text-align: center; margin-bottom: 20px; }
-        header h1 { font-size: 1.4rem; color: var(--primary); margin: 0; }
-
-        .card {
-            background: white; padding: 20px; border-radius: 16px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); margin-bottom: 16px;
-        }
-
-        .input-group { margin-bottom: 12px; }
-        label { display: block; font-size: 0.75rem; font-weight: bold; margin-bottom: 4px; color: #64748b; }
+        /* Estilo do Botão Flutuante + */
+        .fab { position: fixed; bottom: 25px; right: 25px; width: 60px; height: 60px; background: var(--success); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 30px; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 100; cursor: pointer; }
         
-        input {
-            width: 100%; padding: 12px; font-size: 1rem;
-            border: 1px solid #e2e8f0; border-radius: 8px; box-sizing: border-box;
-        }
-
-        button {
-            width: 100%; padding: 14px; background-color: var(--success);
-            color: white; border: none; border-radius: 8px;
-            font-size: 1rem; font-weight: bold; cursor: pointer;
-        }
-
-        button:disabled { background-color: #94a3b8; }
-
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
-        .stat-box { background: #f1f5f9; padding: 12px; border-radius: 10px; text-align: center; }
-        .stat-value { display: block; font-size: 1rem; font-weight: bold; color: var(--primary); }
-        .stat-label { font-size: 0.65rem; color: #64748b; text-transform: uppercase; }
-
-        #status-msg { text-align: center; font-size: 0.85rem; margin-top: 10px; font-weight: 500; }
+        /* Modal */
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1001; backdrop-filter: blur(4px); }
+        .modal { background: white; width: 85%; max-width: 350px; padding: 25px; border-radius: 24px; }
+        .input-group { margin-bottom: 12px; }
+        input, select { width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 10px; box-sizing: border-box; font-size: 1rem; }
+        .btn-acao { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 10px; font-weight: bold; margin-top: 10px; }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <header><h1>🏍️ Moto Log</h1></header>
+        <header>
+            <h1>🏍️ Fazer 150</h1>
+            <span id="status-sync" style="font-size: 0.7rem;">Sincronizando...</span>
+        </header>
 
         <div class="card">
-            <label>Relatórios da Planilha</label>
+            <span class="card-title">Resumo Financeiro</span>
             <div class="stats-grid">
-                <div class="stat-box">
-                    <span class="stat-label">Média km/l</span>
-                    <span id="res-media" class="stat-value">--</span>
-                </div>
-                <div class="stat-box">
-                    <span class="stat-label">Diário Médio</span>
-                    <span id="res-diario" class="stat-value">R$ --</span>
-                </div>
-                <div class="stat-box">
-                    <span class="stat-label">Real Semanal</span>
-                    <span id="res-semanal" class="stat-value">R$ --</span>
-                </div>
-                <div class="stat-box">
-                    <span class="stat-label">Real Mensal</span>
-                    <span id="res-mensal" class="stat-value">R$ --</span>
-                </div>
+                <div class="stat-box"><span class="stat-label">Média km/l</span><span id="res-media" class="stat-val">--</span></div>
+                <div class="stat-box"><span class="stat-label">Mensal</span><span id="res-mensal" class="stat-val">R$ 0</span></div>
+                <div class="stat-box"><span class="stat-label">Custo km</span><span id="res-custo" class="stat-val">R$ 0</span></div>
+                <div class="stat-box"><span class="stat-label">Semanal</span><span id="res-semanal" class="stat-val">R$ 0</span></div>
             </div>
-            <div id="status-msg">Carregando dados...</div>
         </div>
 
         <div class="card">
-            <div class="input-group">
-                <label>Odômetro (km)</label>
-                <input type="number" id="km" inputmode="numeric" placeholder="Ex: 15420">
+            <span class="card-title">Troca de Óleo</span>
+            <div style="display: flex; justify-content: space-between; font-size: 0.8rem;">
+                <span id="oil-text">Carregando...</span>
+                <span>Meta: 3.000 km</span>
             </div>
+            <div class="progress-bar"><div id="oil-progress"></div></div>
+        </div>
+
+        <div class="card"><span class="card-title">Consumo (km/l)</span><canvas id="chart"></canvas></div>
+
+        <div class="card"><span class="card-title">Últimos Registros</span><div id="history-list"></div></div>
+    </div>
+
+    <button class="fab" onclick="toggleModal(true)">+</button>
+
+    <div class="overlay" id="overlay">
+        <div class="modal">
+            <h3 style="margin-top:0">Novo Registro</h3>
             <div class="input-group">
-                <label>Litros</label>
-                <input type="number" id="litros" step="0.01" inputmode="decimal" placeholder="Ex: 8.5">
+                <select id="tipo" onchange="ajustarCampos()">
+                    <option value="combustivel">Abastecimento</option>
+                    <option value="oleo">Troca de Óleo</option>
+                </select>
             </div>
-            <div class="input-group">
-                <label>Total Pago (R$)</label>
-                <input type="number" id="valor" step="0.01" inputmode="decimal" placeholder="Ex: 45.00">
-            </div>
-            <button id="btnSalvar" onclick="enviarDados()">Salvar Abastecimento</button>
+            <div class="input-group"><input type="number" id="km" inputmode="numeric" placeholder="Odômetro (km)"></div>
+            <div class="input-group" id="group-litros"><input type="number" id="litros" step="0.01" inputmode="decimal" placeholder="Litros"></div>
+            <div class="input-group"><input type="number" id="valor" step="0.01" inputmode="decimal" placeholder="Valor Total (R$)"></div>
+            <button class="btn-acao" id="btnSalvar" onclick="enviar()">Salvar</button>
+            <button onclick="toggleModal(false)" style="width:100%; background:none; border:none; margin-top:10px; color:#64748b;">Cancelar</button>
         </div>
     </div>
 
     <script>
-        // SUBSTITUA PELA SUA URL DE IMPLANTAÇÃO
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxxU3yZjK8Fc8A6_3VjZkl06w3fh9rk2ZsEUoTvkczi3VNuQ87txmsmvXMfKpOBnT5TQw/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzsL10KDl8xMuqLa6swJ-5vtjDOigas19xZ5lpoEamgerjg47qqWLrr-IxnwvY6T-xFGA/exec"; // <--- COLE SUA URL AQUI
+        let chart;
 
-        // Inicia carregando os dados da planilha
-        window.onload = carregarDados;
+        function toggleModal(show) { document.getElementById('overlay').style.display = show ? 'flex' : 'none'; }
+        function ajustarCampos() { document.getElementById('group-litros').style.display = document.getElementById('tipo').value === 'oleo' ? 'none' : 'block'; }
 
-        async function carregarDados() {
-            const status = document.getElementById('status-msg');
+        window.onload = carregar;
+
+        async function carregar() {
             try {
-                const response = await fetch(SCRIPT_URL);
-                const dados = await response.json();
-                if (dados && dados.length > 0) {
-                    processarRelatorios(dados);
-                    status.innerText = "Sincronizado com a planilha";
-                    status.style.color = "var(--success)";
-                } else {
-                    status.innerText = "Planilha vazia. Aguardando dados.";
-                }
-            } catch (e) {
-                status.innerText = "Offline ou Erro de Permissão (403)";
-                status.style.color = "red";
-            }
+                const res = await fetch(SCRIPT_URL);
+                const data = await res.json();
+                atualizarUI(data);
+                document.getElementById('status-sync').innerText = "✓ Online";
+            } catch (e) { document.getElementById('status-sync').innerText = "⚠ Erro"; }
         }
 
-        function processarRelatorios(historico) {
-            // Médias km/l
-            if (historico.length >= 2) {
-                const u = historico[historico.length - 1]; // Último
-                const p = historico[historico.length - 2]; // Penúltimo
-                const media = (u[1] - p[1]) / u[2];
-                document.getElementById('res-media').innerText = media.toFixed(2);
-            }
-
-            // Gastos
+        function atualizarUI(data) {
+            const abast = data.abastecimentos;
+            const manu = data.manutencoes;
+            let mensal = 0, semanal = 0, kmLabels = [], consumoData = [];
             const hoje = new Date();
-            let semanal = 0, mensal = 0;
 
-            historico.forEach(linha => {
-                const dataRow = new Date(linha[0]);
-                const valor = parseFloat(linha[3]);
-                const diffDias = (hoje - dataRow) / (1000 * 60 * 60 * 24);
-
-                if (diffDias <= 7) semanal += valor;
-                if (diffDias <= 30) mensal += valor;
+            abast.forEach((l, i) => {
+                const d = new Date(l[0]);
+                if ((hoje - d) / 864e5 <= 7) semanal += l[3];
+                if ((hoje - d) / 864e5 <= 30) mensal += l[3];
+                if (i > 0) {
+                    const media = (l[1] - abast[i-1][1]) / l[2];
+                    kmLabels.push(d.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'}));
+                    consumoData.push(media.toFixed(1));
+                }
             });
 
-            document.getElementById('res-semanal').innerText = "R$ " + semanal.toFixed(2);
             document.getElementById('res-mensal').innerText = "R$ " + mensal.toFixed(2);
-            document.getElementById('res-diario').innerText = "R$ " + (mensal / 30).toFixed(2);
+            document.getElementById('res-semanal').innerText = "R$ " + semanal.toFixed(2);
+            
+            const ult = abast[abast.length-1];
+            if (ult && abast.length > 1) {
+                const dist = ult[1] - abast[abast.length-2][1];
+                document.getElementById('res-media').innerText = (dist / ult[2]).toFixed(1) + " km/l";
+                document.getElementById('res-custo').innerText = "R$ " + (ult[3] / dist).toFixed(2);
+            }
+
+            // Lógica do Óleo Automática
+            if (manu.length > 0 && ult) {
+                const ultimaTroca = manu[manu.length-1][1];
+                const rodado = ult[1] - ultimaTroca;
+                const perc = (rodado / 3000) * 100;
+                document.getElementById('oil-progress').style.width = Math.min(perc, 100) + "%";
+                document.getElementById('oil-text').innerText = `Faltam ${3000 - rodado} km`;
+            }
+
+            // Gráfico e Lista
+            renderChart(kmLabels.slice(-6), consumoData.slice(-6));
+            document.getElementById('history-list').innerHTML = abast.slice(-3).reverse().map(l => `
+                <div class="history-item"><span>${new Date(l[0]).toLocaleDateString()}</span><b>R$ ${l[3].toFixed(2)}</b><span>${l[1]} km</span></div>
+            `).join('');
         }
 
-        async function enviarDados() {
+        function renderChart(l, d) {
+            const ctx = document.getElementById('chart').getContext('2d');
+            if(chart) chart.destroy();
+            chart = new Chart(ctx, { type: 'line', data: { labels: l, datasets: [{ data: d, borderColor: '#2563eb', tension: 0.4, fill: true, backgroundColor: 'rgba(37,99,235,0.1)' }] }, options: { plugins: { legend: { display: false } } } });
+        }
+
+        async function enviar() {
             const btn = document.getElementById('btnSalvar');
-            const payload = {
-                km: document.getElementById('km').value,
-                litros: document.getElementById('litros').value,
-                valor: document.getElementById('valor').value
-            };
-
-            if (!payload.km || !payload.litros || !payload.valor) return alert("Preencha tudo!");
-
-            btn.disabled = true;
-            document.getElementById('status-msg').innerText = "Enviando...";
-
+            const data = { tipo: document.getElementById('tipo').value, km: document.getElementById('km').value, litros: document.getElementById('litros').value, valor: document.getElementById('valor').value };
+            btn.disabled = true; btn.innerText = "Enviando...";
             try {
-                await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    body: JSON.stringify(payload)
-                });
-                
-                alert("Registrado! Atualize a página para ver os novos cálculos.");
-                location.reload(); // Recarrega para buscar os novos dados e atualizar médias
-            } catch (e) {
-                alert("Erro ao salvar.");
-                btn.disabled = false;
-            }
+                await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(data) });
+                location.reload();
+            } catch (e) { alert("Erro"); btn.disabled = false; }
         }
     </script>
 </body>
