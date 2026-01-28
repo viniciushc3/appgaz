@@ -9,17 +9,22 @@
         :root { --primary: #2563eb; --success: #16a34a; --warning: #eab308; --danger: #ef4444; --bg: #f1f5f9; --card: #ffffff; --text: #1e293b; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; }
         .container { width: 100%; max-width: 450px; padding-bottom: 80px; }
+        
+        /* Cabeçalho com atalho para planilha */
         header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .btn-edit-sheet { text-decoration: none; color: #64748b; font-size: 1.2rem; padding: 5px; transition: color 0.2s; }
+        .btn-edit-sheet:hover { color: var(--primary); }
+
         .card { background: var(--card); padding: 18px; border-radius: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 16px; }
         .card-title { font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 12px; display: block; }
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .stat-box { background: #f8fafc; padding: 12px; border-radius: 12px; border: 1px solid #f1f5f9; text-align: center; }
         .stat-val { display: block; font-size: 1.1rem; font-weight: 800; color: var(--text); }
         .stat-label { font-size: 0.65rem; color: #64748b; }
+        
         .progress-bar { background: #e2e8f0; height: 12px; border-radius: 10px; margin: 10px 0; overflow: hidden; }
         #oil-progress { background: var(--warning); height: 100%; width: 0%; transition: width 1s; }
         
-        /* Ajuste do Histórico */
         .history-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
         .history-item:last-child { border-bottom: none; }
         .hist-date { font-size: 0.8rem; color: #64748b; flex: 1; }
@@ -37,8 +42,13 @@
 
     <div class="container">
         <header>
-            <h1>🏍️ Fazer 150</h1>
-            <span id="status-sync" style="font-size: 0.7rem; font-weight: bold;">Sincronizando...</span>
+            <h1 style="margin:0;">🏍️ Fazer 150</h1>
+            <div>
+                <a href="https://docs.google.com/spreadsheets/d/1m0bRtya14GSIWtLe7TFD1EgVDKp-HrzHU1Vj7HI3Xco/edit" target="_blank" class="btn-edit-sheet" title="Editar Planilha">
+                    ✎
+                </a>
+                <span id="status-sync" style="font-size: 0.7rem; font-weight: bold; margin-left: 10px;">Sincronizando...</span>
+            </div>
         </header>
 
         <div class="card">
