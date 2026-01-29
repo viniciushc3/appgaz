@@ -83,7 +83,7 @@
     </div>
 
     <script>
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwnBefRpuwhhbgjWglNt-YPlYr1Lhkl-ryArOsyddy8B-3jUPatSnol-ouWML1zjhaZTw/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw36PQbfoQAg8o3eh4MsdPFX6K_HNO_kFKIQdaD_42-jLg9ocW5ZQdHcar44YpVKzzN6A/exec";
         let userCoords = ""; let chart;
 
         function maskMoeda(i) { let v = i.value.replace(/\D/g, ""); v = (v / 100).toFixed(2).replace(".", ","); i.value = "R$ " + v; }
@@ -109,50 +109,60 @@
         }
 
         function atualizarUI(data) {
-            const abast = data.abastecimentos || [];
-            const manu = data.manutencoes || [];
-            const hoje = new Date();
-            let mensal = 0, semanal = 0, kmLabels = [], consData = [];
+    // Se o dado vier vazio ou com erro, limpa o cache e para
+    if (!data || data.erro) {
+        localStorage.removeItem('moto_cache_v2');
+        return;
+    }
 
-            if (abast.length > 0) {
-                const kmAtual = abast[abast.length - 1][1];
-                abast.forEach((l, i) => {
-                    const d = new Date(l[0]);
-                    // Coluna D: Valor (índice 3)
-                    if ((hoje - d) / 864e5 <= 7) semanal += l[3];
-                    if ((hoje - d) / 864e5 <= 30) mensal += l[3];
-                    if (i > 0) {
-                        const m = (l[1] - abast[i-1][1]) / l[2]; // l[2] é Litros
-                        kmLabels.push(d.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'}));
-                        consData.push(m.toFixed(1));
-                    }
-                });
-                document.getElementById('res-mensal').innerText = "R$ " + mensal.toFixed(2);
-                document.getElementById('res-semanal').innerText = "R$ " + semanal.toFixed(2);
-                if (abast.length > 1) {
-                    const ult = abast[abast.length-1];
-                    const dist = ult[1] - abast[abast.length-2][1];
-                    document.getElementById('res-media').innerText = (dist / ult[2]).toFixed(1) + " km/l";
-                    document.getElementById('res-custo').innerText = "R$ " + (ult[3] / dist).toFixed(2);
-                }
-                document.getElementById('history-list').innerHTML = abast.slice(-3).reverse().map(l => `<div class="history-item"><span class="hist-date">${new Date(l[0]).toLocaleDateString('pt-BR')}</span><span class="hist-val">R$ ${l[3].toFixed(2)}</span><span class="hist-km">${l[1]} km</span></div>`).join('');
-                
-                // Na estrutura padronizada, o TIPO está na Coluna E (índice 4)
-                const buscarUltima = (t) => { const f = manu.filter(m => String(m[4]).trim() === t); return f.length > 0 ? f[f.length - 1][1] : 0; };
-                
-                const calc = (km, t, inter, bar, txt) => {
-                    const ult = buscarUltima(t); const rod = km - ult; const perc = Math.min((rod / inter) * 100, 100);
-                    document.getElementById(bar).style.width = perc + "%";
-                    document.getElementById(txt).innerText = `${rod.toLocaleString()} / ${inter.toLocaleString()} km`;
-                    document.getElementById(bar).style.backgroundColor = perc >= 100 ? "var(--danger)" : (perc > 80 ? "var(--warning)" : "var(--primary)");
-                };
-                calc(kmAtual, "Oleo", 3000, 'bar-oleo', 'txt-oleo');
-                calc(kmAtual, "Filtro", 3000, 'bar-filtro', 'txt-filtro');
-                calc(kmAtual, "Vela", 10000, 'bar-vela', 'txt-vela');
-                calc(kmAtual, "Relacao", 20000, 'bar-relacao', 'txt-relacao');
-                renderChart(kmLabels.slice(-6), consData.slice(-6));
+    const abast = data.abastecimentos || [];
+    const manu = data.manutencoes || [];
+    const hoje = new Date();
+    let mensal = 0, semanal = 0, kmLabels = [], consData = [];
+
+    if (abast.length > 0) {
+        const kmAtual = abast[abast.length - 1][1];
+
+        abast.forEach((l, i) => {
+            const d = new Date(l[0]);
+            // Valor agora é Coluna D (índice 3)
+            if (!isNaN(d.getTime())) {
+                if ((hoje - d) / 864e5 <= 7) semanal += Number(l[3] || 0);
+                if ((hoje - d) / 864e5 <= 30) mensal += Number(l[3] || 0);
             }
-        }
+            if (i > 0 && l[2] > 0) {
+                const m = (l[1] - abast[i-1][1]) / l[2];
+                kmLabels.push(d.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'}));
+                consData.push(m.toFixed(1));
+            }
+        });
+
+        document.getElementById('res-mensal').innerText = "R$ " + mensal.toFixed(2);
+        document.getElementById('res-semanal').innerText = "R$ " + semanal.toFixed(2);
+        
+        // Tipo agora é Coluna E (índice 4)
+        const buscarUltima = (t) => { 
+            const f = manu.filter(m => String(m[4]).trim().toLowerCase() === t.toLowerCase());
+            return f.length > 0 ? f[f.length - 1][1] : 0; 
+        };
+
+        const calc = (km, t, inter, bar, txt) => {
+            const ult = buscarUltima(t); 
+            const rod = km - ult; 
+            const perc = Math.min((rod / inter) * 100, 100);
+            document.getElementById(bar).style.width = perc + "%";
+            document.getElementById(txt).innerText = `${rod.toLocaleString()} / ${inter.toLocaleString()} km`;
+            document.getElementById(bar).style.backgroundColor = perc >= 100 ? "var(--danger)" : (perc > 80 ? "var(--warning)" : "var(--primary)");
+        };
+
+        calc(kmAtual, "Oleo", 3000, 'bar-oleo', 'txt-oleo');
+        calc(kmAtual, "Filtro", 3000, 'bar-filtro', 'txt-filtro');
+        calc(kmAtual, "Vela", 10000, 'bar-vela', 'txt-vela');
+        calc(kmAtual, "Relacao", 20000, 'bar-relacao', 'txt-relacao');
+        
+        renderChart(kmLabels.slice(-6), consData.slice(-6));
+    }
+}
 
         function renderChart(l, d) {
             const ctx = document.getElementById('chart').getContext('2d');
