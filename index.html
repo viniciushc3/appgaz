@@ -8,7 +8,6 @@
     <style>
         :root { --primary: #2563eb; --success: #16a34a; --warning: #eab308; --danger: #ef4444; --bg: #f1f5f9; --card: #ffffff; --text: #1e293b; }
         
-        /* Animações Keyframes */
         @keyframes fadeInUp {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
@@ -21,14 +20,10 @@
         }
 
         body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; overflow-x: hidden; }
-        
         .container { width: 100%; max-width: 450px; padding-bottom: 80px; }
-        
         header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; animation: fadeInUp 0.5s ease-out; }
-        
         .btn-edit-sheet { text-decoration: none; color: #64748b; font-size: 1.2rem; padding: 5px; }
 
-        /* Aplicação da animação nos cards com atraso (delay) */
         .card { 
             background: var(--card); padding: 18px; border-radius: 20px; 
             box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 16px; 
@@ -40,14 +35,13 @@
         .card:nth-child(5) { animation-delay: 0.4s; }
 
         #status-sync { animation: pulse 2s infinite; }
-
         .card-title { font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 12px; display: block; }
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .stat-box { background: #f8fafc; padding: 12px; border-radius: 12px; border: 1px solid #f1f5f9; text-align: center; }
         .stat-val { display: block; font-size: 1.1rem; font-weight: 800; color: var(--text); }
         
         .progress-bar { background: #e2e8f0; height: 12px; border-radius: 10px; margin: 10px 0; overflow: hidden; }
-        #oil-progress { background: var(--warning); height: 100%; width: 0%; transition: width 1.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        #oil-progress { background: var(--warning); height: 0%; width: 0%; transition: width 1.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
         
         .history-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
         .hist-date { font-size: 0.8rem; color: #64748b; flex: 1; }
@@ -72,7 +66,6 @@
             background: white; width: 85%; max-width: 350px; padding: 25px; 
             border-radius: 25px; transform: scale(0.9); transition: transform 0.3s ease;
         }
-        /* Quando o overlay estiver visível, anima o modal */
         .overlay[style*="display: flex"] .modal { transform: scale(1); }
 
         input, select { width: 100%; padding: 14px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 1rem; margin-bottom: 12px; box-sizing: border-box; }
@@ -126,19 +119,35 @@
                 <option value="combustivel">⛽ Abastecimento</option>
                 <option value="oleo">🔧 Troca de Óleo</option>
             </select>
+            
+            <input type="text" id="valor" inputmode="numeric" placeholder="Valor Total (R$)" oninput="maskMoeda(this)">
+            <input type="text" id="litros" inputmode="numeric" placeholder="Litros" oninput="maskLitros(this)">
             <input type="number" id="km" inputmode="numeric" placeholder="Odômetro (km)">
-            <input type="number" id="litros" step="0.01" inputmode="decimal" placeholder="Litros">
-            <input type="number" id="valor" step="0.01" inputmode="decimal" placeholder="Valor Total (R$)">
+            
             <button class="btn-acao" id="btnSalvar" onclick="enviar()">Salvar Registro</button>
             <button onclick="document.getElementById('overlay').style.display='none'" style="width:100%; background:none; border:none; margin-top:12px; color:#64748b;">Cancelar</button>
         </div>
     </div>
 
     <script>
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzn2EN4Qd_lEIDBOAd_6p5XB2kBz7uJdGl7PLqf-imubwI-V0Lh1QUiNoz9yWFsW57O9g/exec"; 
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw6kWtwQhU_zgfL_HE_db0pJAeKmD_KXA2mmACjADxZKoc9eYicwEkqFGJ0IbRcITOjog/exec"; 
         let chart;
 
         window.onload = carregar;
+
+        // Máscara de Moeda (2 casas decimais)
+        function maskMoeda(i) {
+            let v = i.value.replace(/\D/g, "");
+            v = (v / 100).toFixed(2).replace(".", ",");
+            i.value = "R$ " + v;
+        }
+
+        // Máscara de Litros (3 casas decimais)
+        function maskLitros(i) {
+            let v = i.value.replace(/\D/g, "");
+            v = (v / 1000).toFixed(3).replace(".", ",");
+            i.value = v + " L";
+        }
 
         async function carregar() {
             try {
@@ -147,7 +156,6 @@
                 atualizarUI(data);
                 document.getElementById('status-sync').innerText = "✓ Online";
                 document.getElementById('status-sync').style.color = "var(--success)";
-                // Para a animação de pulso quando estiver sincronizado
                 document.getElementById('status-sync').style.animation = "none";
             } catch (e) { 
                 document.getElementById('status-sync').innerText = "⚠ Erro de Acesso";
@@ -212,13 +220,26 @@
 
         async function enviar() {
             const btn = document.getElementById('btnSalvar');
-            const data = { tipo: document.getElementById('tipo').value, km: document.getElementById('km').value, litros: document.getElementById('litros').value, valor: document.getElementById('valor').value };
-            if(!data.km || !data.valor) return alert("Preencha os campos!");
+            
+            // Tratamento dos valores com máscara para o formato numérico (ponto decimal)
+            const valorLimpo = document.getElementById('valor').value.replace("R$ ", "").replace(",", ".");
+            const litrosLimpo = document.getElementById('litros').value.replace(" L", "").replace(",", ".");
+            const km = document.getElementById('km').value;
+
+            const data = { 
+                tipo: document.getElementById('tipo').value, 
+                km: km, 
+                litros: litrosLimpo, 
+                valor: valorLimpo 
+            };
+            
+            if(!km || valorLimpo == "0.00") return alert("Preencha os campos corretamente!");
+
             btn.disabled = true; btn.innerText = "Gravando...";
             try {
                 await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(data) });
                 location.reload();
-            } catch (e) { alert("Erro de rede"); btn.disabled = false; }
+            } catch (e) { alert("Erro de rede"); btn.disabled = false; btn.innerText = "Salvar Registro"; }
         }
     </script>
 </body>
