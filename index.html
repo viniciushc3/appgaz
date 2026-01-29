@@ -3,83 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Fazer 150 - Log</title>
+    <title>Fazer 150 - Log PRO</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --primary: #2563eb; --success: #16a34a; --warning: #eab308; --danger: #ef4444; --bg: #f1f5f9; --card: #ffffff; --text: #1e293b; }
-        
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
-        }
-
-        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; overflow-x: hidden; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; }
         .container { width: 100%; max-width: 450px; padding-bottom: 80px; }
-        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; animation: fadeInUp 0.5s ease-out; }
-        .btn-edit-sheet { text-decoration: none; color: #64748b; font-size: 1.2rem; padding: 5px; }
-
-        .card { 
-            background: var(--card); padding: 18px; border-radius: 20px; 
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 16px; 
-            animation: fadeInUp 0.6s ease-out both;
-        }
-        .card:nth-child(2) { animation-delay: 0.1s; }
-        .card:nth-child(3) { animation-delay: 0.2s; }
-        .card:nth-child(4) { animation-delay: 0.3s; }
-        .card:nth-child(5) { animation-delay: 0.4s; }
-
-        #status-sync { animation: pulse 2s infinite; }
+        header { width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        #status-sync { font-size: 0.7rem; font-weight: bold; }
+        .card { background: var(--card); padding: 18px; border-radius: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 16px; width: 100%; box-sizing: border-box; }
         .card-title { font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 12px; display: block; }
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .stat-box { background: #f8fafc; padding: 12px; border-radius: 12px; border: 1px solid #f1f5f9; text-align: center; }
         .stat-val { display: block; font-size: 1.1rem; font-weight: 800; color: var(--text); }
+        .stat-label { font-size: 0.65rem; color: #64748b; text-transform: uppercase; }
+        .maint-item { margin-bottom: 15px; }
+        .maint-info { display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 5px; }
+        .progress-bar { background: #e2e8f0; height: 10px; border-radius: 10px; overflow: hidden; }
+        .progress-fill { height: 100%; width: 0%; transition: width 1s ease-in-out; }
         
-        .progress-bar { background: #e2e8f0; height: 12px; border-radius: 10px; margin: 10px 0; overflow: hidden; }
-        #oil-progress { background: var(--warning); height: 0%; width: 0%; transition: width 1.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
-        
+        /* Estilos do Histórico */
         .history-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
+        .history-item:last-child { border-bottom: none; }
         .hist-date { font-size: 0.8rem; color: #64748b; flex: 1; }
         .hist-val { font-weight: 700; flex: 1; text-align: center; color: var(--text); }
         .hist-km { font-weight: 600; flex: 1; text-align: right; color: var(--primary); }
 
-        .fab { 
-            position: fixed; bottom: 25px; right: 25px; width: 65px; height: 65px; 
-            background: var(--success); color: white; border-radius: 50%; 
-            display: flex; align-items: center; justify-content: center; 
-            font-size: 35px; border: none; box-shadow: 0 5px 15px rgba(0,0,0,0.2); 
-            z-index: 1000; cursor: pointer; transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-        .fab:active { transform: scale(0.8) rotate(90deg); }
-
-        .overlay { 
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: rgba(0,0,0,0.6); display: none; justify-content: center; 
-            align-items: center; z-index: 1001; backdrop-filter: blur(4px); 
-        }
-        .modal { 
-            background: white; width: 85%; max-width: 350px; padding: 25px; 
-            border-radius: 25px; transform: scale(0.9); transition: transform 0.3s ease;
-        }
-        .overlay[style*="display: flex"] .modal { transform: scale(1); }
-
+        .fab { position: fixed; bottom: 25px; right: 25px; width: 65px; height: 65px; background: var(--success); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 35px; border: none; box-shadow: 0 5px 15px rgba(0,0,0,0.2); z-index: 1000; cursor: pointer; }
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 1001; backdrop-filter: blur(4px); }
+        .modal { background: white; width: 85%; max-width: 350px; padding: 25px; border-radius: 25px; }
         input, select { width: 100%; padding: 14px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 1rem; margin-bottom: 12px; box-sizing: border-box; }
-        .btn-acao { width: 100%; padding: 16px; background: var(--primary); color: white; border: none; border-radius: 12px; font-weight: bold; font-size: 1rem; }
+        .btn-acao { width: 100%; padding: 16px; background: var(--primary); color: white; border: none; border-radius: 12px; font-weight: bold; }
     </style>
 </head>
 <body>
-
     <div class="container">
         <header>
             <h1 style="margin:0;">🏍️ Fazer 150</h1>
             <div>
-                <a href="https://docs.google.com/spreadsheets/d/1m0bRtya14GSIWtLe7TFD1EgVDKp-HrzHU1Vj7HI3Xco/edit" target="_blank" class="btn-edit-sheet">✎</a>
-                <span id="status-sync" style="font-size: 0.7rem; font-weight: bold; margin-left: 10px;">Sincronizando...</span>
+                <a href="URL_DA_SUA_PLANILHA" target="_blank" style="text-decoration:none; color:#64748b">✎</a>
+                <span id="status-sync" style="color: var(--warning); margin-left: 8px;">Sincronizando...</span>
             </div>
         </header>
 
@@ -94,12 +57,23 @@
         </div>
 
         <div class="card">
-            <span class="card-title">Manutenção de Óleo</span>
-            <div style="display: flex; justify-content: space-between; font-size: 0.85rem;">
-                <span id="oil-text" style="font-weight: bold;">Carregando...</span>
-                <span style="color: #64748b;">Intervalo: 3.000 km</span>
+            <span class="card-title">Saúde da Moto</span>
+            <div class="maint-item">
+                <div class="maint-info"><span>Óleo (3.000 km)</span><span id="txt-oleo">--</span></div>
+                <div class="progress-bar"><div id="bar-oleo" class="progress-fill" style="background:var(--warning)"></div></div>
             </div>
-            <div class="progress-bar"><div id="oil-progress"></div></div>
+            <div class="maint-item">
+                <div class="maint-info"><span>Filtro de Ar (3.000 km)</span><span id="txt-filtro">--</span></div>
+                <div class="progress-bar"><div id="bar-filtro" class="progress-fill" style="background:var(--primary)"></div></div>
+            </div>
+            <div class="maint-item">
+                <div class="maint-info"><span>Vela (10.000 km)</span><span id="txt-vela">--</span></div>
+                <div class="progress-bar"><div id="bar-vela" class="progress-fill" style="background:#8b5cf6"></div></div>
+            </div>
+            <div class="maint-item">
+                <div class="maint-info"><span>Kit Relação (20.000 km)</span><span id="txt-relacao">--</span></div>
+                <div class="progress-bar"><div id="bar-relacao" class="progress-fill" style="background:var(--success)"></div></div>
+            </div>
         </div>
 
         <div class="card"><span class="card-title">Consumo (Últimas Viagens)</span><canvas id="chart"></canvas></div>
@@ -110,44 +84,61 @@
         </div>
     </div>
 
-    <button class="fab" onclick="document.getElementById('overlay').style.display='flex'">+</button>
+    <button class="fab" onclick="abrirModal()">+</button>
 
     <div class="overlay" id="overlay">
         <div class="modal">
             <h3 style="margin-top:0">Novo Registro</h3>
-            <select id="tipo" onchange="document.getElementById('litros').style.display = this.value === 'oleo' ? 'none' : 'block';">
+            <select id="tipo" onchange="ajustarCampos(this.value)">
                 <option value="combustivel">⛽ Abastecimento</option>
-                <option value="oleo">🔧 Troca de Óleo</option>
+                <option value="Oleo">🔧 Troca de Óleo</option>
+                <option value="Filtro">🌬️ Filtro de Ar</option>
+                <option value="Vela">🕯️ Troca de Vela</option>
+                <option value="Relacao">⚙️ Kit Relação</option>
             </select>
-            
+            <div id="box-filtro" style="display:none; margin-bottom:12px; font-size: 0.85rem; align-items: center; gap: 8px;">
+                <input type="checkbox" id="filtro_trocado" style="width:auto; margin:0;"> 
+                <label for="filtro_trocado">Filtro de Ar trocado junto</label>
+            </div>
             <input type="text" id="valor" inputmode="numeric" placeholder="Valor Total (R$)" oninput="maskMoeda(this)">
             <input type="text" id="litros" inputmode="numeric" placeholder="Litros" oninput="maskLitros(this)">
             <input type="number" id="km" inputmode="numeric" placeholder="Odômetro (km)">
-            
             <button class="btn-acao" id="btnSalvar" onclick="enviar()">Salvar Registro</button>
             <button onclick="document.getElementById('overlay').style.display='none'" style="width:100%; background:none; border:none; margin-top:12px; color:#64748b;">Cancelar</button>
         </div>
     </div>
 
     <script>
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw6kWtwQhU_zgfL_HE_db0pJAeKmD_KXA2mmACjADxZKoc9eYicwEkqFGJ0IbRcITOjog/exec"; 
-        let chart;
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbygYA8r_mOIzgll5X3kSBYzT4L22rwUEK3kyLCUYQUF8QAj-wDzQg26tTYTJ5AwXHz1qw/exec";
+        let userCoords = ""; let chart;
 
-        window.onload = carregar;
-
-        // Máscara de Moeda (2 casas decimais)
         function maskMoeda(i) {
             let v = i.value.replace(/\D/g, "");
             v = (v / 100).toFixed(2).replace(".", ",");
             i.value = "R$ " + v;
         }
 
-        // Máscara de Litros (3 casas decimais)
         function maskLitros(i) {
             let v = i.value.replace(/\D/g, "");
             v = (v / 1000).toFixed(3).replace(".", ",");
             i.value = v + " L";
         }
+
+        function ajustarCampos(tipo) {
+            document.getElementById('litros').style.display = (tipo === 'combustivel') ? 'block' : 'none';
+            document.getElementById('box-filtro').style.display = (tipo === 'Oleo') ? 'flex' : 'none';
+        }
+
+        function abrirModal() {
+            document.getElementById('overlay').style.display = 'flex';
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(pos => {
+                    userCoords = `${pos.coords.latitude},${pos.coords.longitude}`;
+                }, null, {enableHighAccuracy: true});
+            }
+        }
+
+        window.onload = carregar;
 
         async function carregar() {
             try {
@@ -156,11 +147,7 @@
                 atualizarUI(data);
                 document.getElementById('status-sync').innerText = "✓ Online";
                 document.getElementById('status-sync').style.color = "var(--success)";
-                document.getElementById('status-sync').style.animation = "none";
-            } catch (e) { 
-                document.getElementById('status-sync').innerText = "⚠ Erro de Acesso";
-                document.getElementById('status-sync').style.color = "var(--danger)";
-            }
+            } catch (e) { document.getElementById('status-sync').innerText = "⚠ Erro"; }
         }
 
         function atualizarUI(data) {
@@ -170,6 +157,8 @@
             let mensal = 0, semanal = 0, kmLabels = [], consData = [];
 
             if (abast.length > 0) {
+                const kmAtual = abast[abast.length - 1][1];
+
                 abast.forEach((l, i) => {
                     const d = new Date(l[0]);
                     if ((hoje - d) / 864e5 <= 7) semanal += l[3];
@@ -184,22 +173,14 @@
                 document.getElementById('res-mensal').innerText = "R$ " + mensal.toFixed(2);
                 document.getElementById('res-semanal').innerText = "R$ " + semanal.toFixed(2);
                 
-                const ult = abast[abast.length-1];
                 if (abast.length > 1) {
+                    const ult = abast[abast.length-1];
                     const dist = ult[1] - abast[abast.length-2][1];
                     document.getElementById('res-media').innerText = (dist / ult[2]).toFixed(1) + " km/l";
                     document.getElementById('res-custo').innerText = "R$ " + (ult[3] / dist).toFixed(2);
                 }
 
-                if (manu.length > 0) {
-                    const ultimaTroca = manu[manu.length-1][1];
-                    const rodado = ult[1] - ultimaTroca;
-                    const perc = (rodado / 3000) * 100;
-                    document.getElementById('oil-progress').style.width = Math.min(perc, 100) + "%";
-                    document.getElementById('oil-text').innerText = rodado < 0 ? "Erro Odômetro" : `Faltam ${Math.max(0, 3000 - rodado)} km`;
-                    document.getElementById('oil-progress').style.backgroundColor = perc >= 90 ? 'var(--danger)' : 'var(--warning)';
-                } else { document.getElementById('oil-text').innerText = "Sem histórico"; }
-
+                // Lógica de Histórico Recente (Pega os últimos 3 abastecimentos)
                 document.getElementById('history-list').innerHTML = abast.slice(-3).reverse().map(l => `
                     <div class="history-item">
                         <span class="hist-date">${new Date(l[0]).toLocaleDateString('pt-BR')}</span>
@@ -207,6 +188,27 @@
                         <span class="hist-km">${l[1]} km</span>
                     </div>
                 `).join('');
+
+                // Lógica de Manutenção
+                const buscarUltima = (tipo) => {
+                    const f = manu.filter(m => String(m[3]).trim() === tipo);
+                    return f.length > 0 ? f[f.length - 1][1] : 0;
+                };
+
+                const calc = (km, tipo, interval, barId, txtId) => {
+                    const ult = buscarUltima(tipo);
+                    const rodado = km - ult;
+                    const perc = Math.min((rodado / interval) * 100, 100);
+                    document.getElementById(barId).style.width = perc + "%";
+                    document.getElementById(txtId).innerText = `${rodado.toLocaleString()} / ${interval.toLocaleString()} km`;
+                    if(perc >= 100) document.getElementById(barId).style.backgroundColor = "var(--danger)";
+                    else if(perc > 80) document.getElementById(barId).style.backgroundColor = "var(--warning)";
+                };
+
+                calc(kmAtual, "Oleo", 3000, 'bar-oleo', 'txt-oleo');
+                calc(kmAtual, "Filtro", 3000, 'bar-filtro', 'txt-filtro');
+                calc(kmAtual, "Vela", 10000, 'bar-vela', 'txt-vela');
+                calc(kmAtual, "Relacao", 20000, 'bar-relacao', 'txt-relacao');
                 
                 renderChart(kmLabels.slice(-6), consData.slice(-6));
             }
@@ -215,31 +217,33 @@
         function renderChart(l, d) {
             const ctx = document.getElementById('chart').getContext('2d');
             if(chart) chart.destroy();
-            chart = new Chart(ctx, { type: 'line', data: { labels: l, datasets: [{ data: d, borderColor: '#2563eb', tension: 0.4, fill: true, backgroundColor: 'rgba(37,99,235,0.1)' }] }, options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: false } } } });
+            chart = new Chart(ctx, { type: 'line', data: { labels: l, datasets: [{ data: d, borderColor: '#2563eb', tension: 0.4, fill: true, backgroundColor: 'rgba(37,99,235,0.1)' }] }, options: { plugins: { legend: { display: false } } } });
         }
 
         async function enviar() {
             const btn = document.getElementById('btnSalvar');
-            
-            // Tratamento dos valores com máscara para o formato numérico (ponto decimal)
-            const valorLimpo = document.getElementById('valor').value.replace("R$ ", "").replace(",", ".");
-            const litrosLimpo = document.getElementById('litros').value.replace(" L", "").replace(",", ".");
+            const tipoOriginal = document.getElementById('tipo').value;
+            const valor = document.getElementById('valor').value.replace("R$ ", "").replace(/\./g, "").replace(",", ".");
+            const litros = document.getElementById('litros').value.replace(" L", "").replace(",", ".");
             const km = document.getElementById('km').value;
+            const filtroTrocado = document.getElementById('filtro_trocado').checked;
 
-            const data = { 
-                tipo: document.getElementById('tipo').value, 
-                km: km, 
-                litros: litrosLimpo, 
-                valor: valorLimpo 
-            };
-            
-            if(!km || valorLimpo == "0.00") return alert("Preencha os campos corretamente!");
-
+            if(!km || (tipoOriginal === 'combustivel' && valor == "0.00")) return alert("Preencha os campos!");
             btn.disabled = true; btn.innerText = "Gravando...";
+
+            const registros = [{ 
+                tipo: tipoOriginal, km: km, litros: (tipoOriginal === 'combustivel' ? litros : 0), valor: valor, coords: userCoords,
+                destino: (tipoOriginal === 'combustivel') ? 'Página1' : 'Manutencao' 
+            }];
+            if (filtroTrocado) {
+                registros.push({ tipo: "Filtro", km: km, litros: 0, valor: 0, coords: userCoords, destino: 'Manutencao' });
+            }
             try {
-                await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(data) });
+                for (const d of registros) {
+                    await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(d) });
+                }
                 location.reload();
-            } catch (e) { alert("Erro de rede"); btn.disabled = false; btn.innerText = "Salvar Registro"; }
+            } catch (e) { alert("Erro ao salvar"); btn.disabled = false; }
         }
     </script>
 </body>
