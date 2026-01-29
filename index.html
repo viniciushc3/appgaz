@@ -25,7 +25,7 @@
         .hist-date { font-size: 0.75rem; color: #64748b; }
         .hist-val { font-weight: 700; font-size: 0.9rem; }
         .hist-km { font-weight: 600; color: var(--primary); font-size: 0.9rem; }
-        .fab { position: fixed; bottom: 25px; right: 25px; width: 65px; height: 65px; background: var(--success); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 35px; border: none; box-shadow: 0 5px 15px rgba(0,0,0,0.2); z-index: 1000; }
+        .fab { position: fixed; bottom: 25px; right: 25px; width: 65px; height: 65px; background: var(--success); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 35px; border: none; box-shadow: 0 5px 15px rgba(0,0,0,0.2); z-index: 1000; cursor: pointer; }
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 1001; backdrop-filter: blur(4px); }
         .modal { background: white; width: 85%; max-width: 350px; padding: 25px; border-radius: 25px; }
         input, select { width: 100%; padding: 14px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 1rem; margin-bottom: 12px; box-sizing: border-box; }
@@ -36,7 +36,7 @@
     <div class="container">
         <header>
             <h1 style="margin:0;">🏍️ Fazer 150</h1>
-            <span id="status-sync">Carregando...</span>
+            <span id="status-sync">Sincronizando...</span>
         </header>
 
         <div class="card">
@@ -51,32 +51,14 @@
 
         <div class="card">
             <span class="card-title">Saúde da Moto</span>
-            <div id="maint-list">
-                <div class="maint-item">
-                    <div class="maint-info"><span>Óleo (3.000 km)</span><span id="txt-oleo">--</span></div>
-                    <div class="progress-bar"><div id="bar-oleo" class="progress-fill"></div></div>
-                </div>
-                <div class="maint-item">
-                    <div class="maint-info"><span>Filtro de Ar (3.000 km)</span><span id="txt-filtro">--</span></div>
-                    <div class="progress-bar"><div id="bar-filtro" class="progress-fill"></div></div>
-                </div>
-                <div class="maint-item">
-                    <div class="maint-info"><span>Vela (10.000 km)</span><span id="txt-vela">--</span></div>
-                    <div class="progress-bar"><div id="bar-vela" class="progress-fill"></div></div>
-                </div>
-                <div class="maint-item">
-                    <div class="maint-info"><span>Relação (20.000 km)</span><span id="txt-relacao">--</span></div>
-                    <div class="progress-bar"><div id="bar-relacao" class="progress-fill"></div></div>
-                </div>
-            </div>
+            <div class="maint-item"><div class="maint-info"><span>Óleo (3.000 km)</span><span id="txt-oleo">--</span></div><div class="progress-bar"><div id="bar-oleo" class="progress-fill"></div></div></div>
+            <div class="maint-item"><div class="maint-info"><span>Filtro de Ar (3.000 km)</span><span id="txt-filtro">--</span></div><div class="progress-bar"><div id="bar-filtro" class="progress-fill"></div></div></div>
+            <div class="maint-item"><div class="maint-info"><span>Vela (10.000 km)</span><span id="txt-vela">--</span></div><div class="progress-bar"><div id="bar-vela" class="progress-fill"></div></div></div>
+            <div class="maint-item"><div class="maint-info"><span>Relação (20.000 km)</span><span id="txt-relacao">--</span></div><div class="progress-bar"><div id="bar-relacao" class="progress-fill"></div></div></div>
         </div>
 
         <div class="card"><canvas id="chart"></canvas></div>
-
-        <div class="card">
-            <span class="card-title">Histórico Recente</span>
-            <div id="history-list"></div>
-        </div>
+        <div class="card"><span class="card-title">Histórico Recente</span><div id="history-list"></div></div>
     </div>
 
     <button class="fab" onclick="abrirModal()">+</button>
@@ -91,125 +73,83 @@
                 <option value="Vela">🕯️ Troca de Vela</option>
                 <option value="Relacao">⚙️ Kit Relação</option>
             </select>
-            <div id="box-filtro" style="display:none; margin-bottom:12px; font-size: 0.85rem; align-items: center; gap: 8px;">
-                <input type="checkbox" id="filtro_trocado" style="width:auto; margin:0;"> 
-                <label for="filtro_trocado">Filtro de Ar trocado junto</label>
-            </div>
+            <div id="box-filtro" style="display:none; margin-bottom:12px; font-size: 0.85rem; align-items: center; gap: 8px;"><input type="checkbox" id="filtro_trocado" style="width:auto; margin:0;"><label for="filtro_trocado">Filtro de Ar trocado junto</label></div>
             <input type="text" id="valor" inputmode="numeric" placeholder="Valor Total (R$)" oninput="maskMoeda(this)">
             <input type="text" id="litros" inputmode="numeric" placeholder="Litros" oninput="maskLitros(this)">
             <input type="number" id="km" inputmode="numeric" placeholder="Odômetro (km)">
             <button class="btn-acao" id="btnSalvar" onclick="enviar()">Salvar Registro</button>
-            <button onclick="fecharModal()" style="width:100%; background:none; border:none; margin-top:12px; color:#64748b;">Cancelar</button>
+            <button onclick="document.getElementById('overlay').style.display='none'" style="width:100%; background:none; border:none; margin-top:12px; color:#64748b;">Cancelar</button>
         </div>
     </div>
 
     <script>
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyiAMl0F24qttANkr0BaIydq1nDu4bgH9FCuDZUoW9NUF5WuYiE3ys8leV96zQeX7Samg/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyQib4k2q43nDizJdOX7RfCj5sS2Skv9zMps19kwIip6OC3HuUiU6mghXSyMRuZy9QMyQ/exec";
         let userCoords = ""; let chart;
 
-        // Máscaras e Modais
         function maskMoeda(i) { let v = i.value.replace(/\D/g, ""); v = (v / 100).toFixed(2).replace(".", ","); i.value = "R$ " + v; }
         function maskLitros(i) { let v = i.value.replace(/\D/g, ""); v = (v / 1000).toFixed(3).replace(".", ","); i.value = v + " L"; }
-        function fecharModal() { document.getElementById('overlay').style.display = 'none'; }
-        function ajustarCampos(tipo) {
-            document.getElementById('litros').style.display = (tipo === 'combustivel') ? 'block' : 'none';
-            document.getElementById('box-filtro').style.display = (tipo === 'Oleo') ? 'flex' : 'none';
-        }
+        function ajustarCampos(tipo) { document.getElementById('litros').style.display = (tipo === 'combustivel') ? 'block' : 'none'; document.getElementById('box-filtro').style.display = (tipo === 'Oleo') ? 'flex' : 'none'; }
+        function abrirModal() { document.getElementById('overlay').style.display = 'flex'; if (navigator.geolocation) { navigator.geolocation.getCurrentPosition(pos => { userCoords = `${pos.coords.latitude},${pos.coords.longitude}`; }, null, {enableHighAccuracy: true}); } }
 
-        function abrirModal() {
-            document.getElementById('overlay').style.display = 'flex';
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(pos => {
-                    userCoords = `${pos.coords.latitude},${pos.coords.longitude}`;
-                }, null, {enableHighAccuracy: true});
-            }
-        }
-
-        // CARREGAMENTO COM CACHE (LOCALSTORAGE)
         window.onload = () => {
-            const cachedData = localStorage.getItem('moto_data');
-            if (cachedData) {
-                console.log("Carregando do cache...");
-                atualizarUI(JSON.parse(cachedData));
-            }
-            carregarDadosServidor();
+            const cached = localStorage.getItem('moto_cache');
+            if (cached) { try { atualizarUI(JSON.parse(cached)); } catch(e) { localStorage.removeItem('moto_cache'); } }
+            carregar();
         };
 
-        async function carregarDadosServidor() {
+        async function carregar() {
             try {
                 const res = await fetch(SCRIPT_URL);
                 const data = await res.json();
-                localStorage.setItem('moto_data', JSON.stringify(data));
+                localStorage.setItem('moto_cache', JSON.stringify(data));
                 atualizarUI(data);
-                document.getElementById('status-sync').innerText = "✓ Online";
-                document.getElementById('status-sync').style.background = "#dcfce7";
-                document.getElementById('status-sync').style.color = "#166534";
-            } catch (e) { 
-                document.getElementById('status-sync').innerText = "⚠ Offline"; 
-            }
+                const st = document.getElementById('status-sync');
+                st.innerText = "✓ Online"; st.style.background = "#dcfce7"; st.style.color = "#166534";
+            } catch (e) { document.getElementById('status-sync').innerText = "⚠ Erro Sinc"; }
         }
 
         function atualizarUI(data) {
-            const abast = data.abastecimentos;
-            const manu = data.manutencoes;
+            const abast = data.abastecimentos || [];
+            const manu = data.manutencoes || [];
             const hoje = new Date();
             let mensal = 0, semanal = 0, kmLabels = [], consData = [];
 
             if (abast.length > 0) {
                 const kmAtual = abast[abast.length - 1][1];
-
                 abast.forEach((l, i) => {
                     const d = new Date(l[0]);
+                    // Na nova estrutura, o valor está na coluna D (índice 3)
                     if ((hoje - d) / 864e5 <= 7) semanal += l[3];
                     if ((hoje - d) / 864e5 <= 30) mensal += l[3];
                     if (i > 0) {
-                        const m = (l[1] - abast[i-1][1]) / l[2];
+                        const m = (l[1] - abast[i-1][1]) / l[2]; // l[2] é Litros
                         kmLabels.push(d.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'}));
                         consData.push(m.toFixed(1));
                     }
                 });
-
                 document.getElementById('res-mensal').innerText = "R$ " + mensal.toFixed(2);
                 document.getElementById('res-semanal').innerText = "R$ " + semanal.toFixed(2);
-                
                 if (abast.length > 1) {
                     const ult = abast[abast.length-1];
                     const dist = ult[1] - abast[abast.length-2][1];
                     document.getElementById('res-media').innerText = (dist / ult[2]).toFixed(1) + " km/l";
                     document.getElementById('res-custo').innerText = "R$ " + (ult[3] / dist).toFixed(2);
                 }
-
-                // Histórico
-                document.getElementById('history-list').innerHTML = abast.slice(-3).reverse().map(l => `
-                    <div class="history-item">
-                        <span class="hist-date">${new Date(l[0]).toLocaleDateString('pt-BR')}</span>
-                        <span class="hist-val">R$ ${l[3].toFixed(2)}</span>
-                        <span class="hist-km">${l[1]} km</span>
-                    </div>
-                `).join('');
-
-                // Manutenção
-                const buscarUltima = (tipo) => {
-                    const f = manu.filter(m => String(m[3]).trim() === tipo);
-                    return f.length > 0 ? f[f.length - 1][1] : 0;
+                document.getElementById('history-list').innerHTML = abast.slice(-3).reverse().map(l => `<div class="history-item"><span class="hist-date">${new Date(l[0]).toLocaleDateString('pt-BR')}</span><span class="hist-val">R$ ${l[3].toFixed(2)}</span><span class="hist-km">${l[1]} km</span></div>`).join('');
+                
+                // Na nova estrutura, o TIPO está na coluna E (índice 4) em ambas as abas
+                const buscarUltima = (t) => { const f = manu.filter(m => String(m[4]).trim() === t); return f.length > 0 ? f[f.length - 1][1] : 0; };
+                
+                const calc = (km, t, inter, bar, txt) => {
+                    const ult = buscarUltima(t); const rod = km - ult; const perc = Math.min((rod / inter) * 100, 100);
+                    document.getElementById(bar).style.width = perc + "%";
+                    document.getElementById(txt).innerText = `${rod.toLocaleString()} / ${inter.toLocaleString()} km`;
+                    document.getElementById(bar).style.backgroundColor = perc >= 100 ? "var(--danger)" : (perc > 80 ? "var(--warning)" : "var(--primary)");
                 };
-
-                const calc = (km, tipo, interval, barId, txtId) => {
-                    const ult = buscarUltima(tipo);
-                    const rodado = km - ult;
-                    const perc = Math.min((rodado / interval) * 100, 100);
-                    document.getElementById(barId).style.width = perc + "%";
-                    document.getElementById(txtId).innerText = `${rodado.toLocaleString()} / ${interval.toLocaleString()} km`;
-                    
-                    const color = perc >= 100 ? "var(--danger)" : (perc > 80 ? "var(--warning)" : "var(--primary)");
-                    document.getElementById(barId).style.backgroundColor = color;
-                };
-
                 calc(kmAtual, "Oleo", 3000, 'bar-oleo', 'txt-oleo');
                 calc(kmAtual, "Filtro", 3000, 'bar-filtro', 'txt-filtro');
                 calc(kmAtual, "Vela", 10000, 'bar-vela', 'txt-vela');
                 calc(kmAtual, "Relacao", 20000, 'bar-relacao', 'txt-relacao');
-                
                 renderChart(kmLabels.slice(-6), consData.slice(-6));
             }
         }
@@ -222,29 +162,19 @@
 
         async function enviar() {
             const btn = document.getElementById('btnSalvar');
-            const tipoOriginal = document.getElementById('tipo').value;
+            const tipo = document.getElementById('tipo').value;
             const valor = document.getElementById('valor').value.replace("R$ ", "").replace(/\./g, "").replace(",", ".");
             const litros = document.getElementById('litros').value.replace(" L", "").replace(",", ".");
             const km = document.getElementById('km').value;
             const filtroTrocado = document.getElementById('filtro_trocado').checked;
-
-            if(!km || (tipoOriginal === 'combustivel' && valor == "0.00")) return alert("Preencha os campos!");
+            if(!km || (tipo === 'combustivel' && valor == "0.00")) return alert("Dados inválidos!");
             btn.disabled = true; btn.innerText = "Gravando...";
-
-            const registros = [{ 
-                tipo: tipoOriginal, km: km, litros: (tipoOriginal === 'combustivel' ? litros : 0), valor: valor, coords: userCoords,
-                destino: (tipoOriginal === 'combustivel') ? 'Página1' : 'Manutencao' 
-            }];
-            if (filtroTrocado) {
-                registros.push({ tipo: "Filtro", km: km, litros: 0, valor: 0, coords: userCoords, destino: 'Manutencao' });
-            }
+            const regs = [{ tipo, km, litros: (tipo === 'combustivel' ? litros : 0), valor, coords: userCoords, destino: (tipo === 'combustivel' ? 'Página1' : 'Manutencao') }];
+            if (filtroTrocado) regs.push({ tipo: "Filtro", km, litros: 0, valor: 0, coords: userCoords, destino: 'Manutencao' });
             try {
-                for (const d of registros) {
-                    await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(d) });
-                }
-                localStorage.removeItem('moto_data'); // Limpa cache para forçar atualização
-                location.reload();
-            } catch (e) { alert("Erro ao salvar"); btn.disabled = false; }
+                for (const d of regs) { await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(d) }); }
+                localStorage.removeItem('moto_cache'); location.reload();
+            } catch (e) { alert("Erro!"); btn.disabled = false; }
         }
     </script>
 </body>
