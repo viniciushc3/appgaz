@@ -21,14 +21,10 @@
         .maint-info { display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 5px; }
         .progress-bar { background: #e2e8f0; height: 10px; border-radius: 10px; overflow: hidden; }
         .progress-fill { height: 100%; width: 0%; transition: width 1s ease-in-out; }
-        
-        /* Estilos do Histórico */
         .history-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
-        .history-item:last-child { border-bottom: none; }
         .hist-date { font-size: 0.8rem; color: #64748b; flex: 1; }
         .hist-val { font-weight: 700; flex: 1; text-align: center; color: var(--text); }
         .hist-km { font-weight: 600; flex: 1; text-align: right; color: var(--primary); }
-
         .fab { position: fixed; bottom: 25px; right: 25px; width: 65px; height: 65px; background: var(--success); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 35px; border: none; box-shadow: 0 5px 15px rgba(0,0,0,0.2); z-index: 1000; cursor: pointer; }
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 1001; backdrop-filter: blur(4px); }
         .modal { background: white; width: 85%; max-width: 350px; padding: 25px; border-radius: 25px; }
@@ -76,7 +72,7 @@
             </div>
         </div>
 
-        <div class="card"><span class="card-title">Consumo (Últimas Viagens)</span><canvas id="chart"></canvas></div>
+        <div class="card"><canvas id="chart"></canvas></div>
 
         <div class="card">
             <span class="card-title">Histórico Recente</span>
@@ -109,7 +105,7 @@
     </div>
 
     <script>
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbygYA8r_mOIzgll5X3kSBYzT4L22rwUEK3kyLCUYQUF8QAj-wDzQg26tTYTJ5AwXHz1qw/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyDl2HUFj48xBaB3ErewG5JzPKqMNv3CXWVbgvSIuCs2QLigqvE4yQGxugpzENNqGTFBA/exec";
         let userCoords = ""; let chart;
 
         function maskMoeda(i) {
@@ -180,7 +176,6 @@
                     document.getElementById('res-custo').innerText = "R$ " + (ult[3] / dist).toFixed(2);
                 }
 
-                // Lógica de Histórico Recente (Pega os últimos 3 abastecimentos)
                 document.getElementById('history-list').innerHTML = abast.slice(-3).reverse().map(l => `
                     <div class="history-item">
                         <span class="hist-date">${new Date(l[0]).toLocaleDateString('pt-BR')}</span>
@@ -189,8 +184,8 @@
                     </div>
                 `).join('');
 
-                // Lógica de Manutenção
                 const buscarUltima = (tipo) => {
+                    // Busca na aba Manutenção: Tipo está no índice 3 (Coluna D)
                     const f = manu.filter(m => String(m[3]).trim() === tipo);
                     return f.length > 0 ? f[f.length - 1][1] : 0;
                 };
