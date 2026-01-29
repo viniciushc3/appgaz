@@ -7,33 +7,74 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --primary: #2563eb; --success: #16a34a; --warning: #eab308; --danger: #ef4444; --bg: #f1f5f9; --card: #ffffff; --text: #1e293b; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; }
+        
+        /* Animações Keyframes */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; overflow-x: hidden; }
+        
         .container { width: 100%; max-width: 450px; padding-bottom: 80px; }
         
-        /* Cabeçalho com atalho para planilha */
-        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .btn-edit-sheet { text-decoration: none; color: #64748b; font-size: 1.2rem; padding: 5px; transition: color 0.2s; }
-        .btn-edit-sheet:hover { color: var(--primary); }
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; animation: fadeInUp 0.5s ease-out; }
+        
+        .btn-edit-sheet { text-decoration: none; color: #64748b; font-size: 1.2rem; padding: 5px; }
 
-        .card { background: var(--card); padding: 18px; border-radius: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 16px; }
+        /* Aplicação da animação nos cards com atraso (delay) */
+        .card { 
+            background: var(--card); padding: 18px; border-radius: 20px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 16px; 
+            animation: fadeInUp 0.6s ease-out both;
+        }
+        .card:nth-child(2) { animation-delay: 0.1s; }
+        .card:nth-child(3) { animation-delay: 0.2s; }
+        .card:nth-child(4) { animation-delay: 0.3s; }
+        .card:nth-child(5) { animation-delay: 0.4s; }
+
+        #status-sync { animation: pulse 2s infinite; }
+
         .card-title { font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 12px; display: block; }
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .stat-box { background: #f8fafc; padding: 12px; border-radius: 12px; border: 1px solid #f1f5f9; text-align: center; }
         .stat-val { display: block; font-size: 1.1rem; font-weight: 800; color: var(--text); }
-        .stat-label { font-size: 0.65rem; color: #64748b; }
         
         .progress-bar { background: #e2e8f0; height: 12px; border-radius: 10px; margin: 10px 0; overflow: hidden; }
-        #oil-progress { background: var(--warning); height: 100%; width: 0%; transition: width 1s; }
+        #oil-progress { background: var(--warning); height: 100%; width: 0%; transition: width 1.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
         
         .history-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
-        .history-item:last-child { border-bottom: none; }
         .hist-date { font-size: 0.8rem; color: #64748b; flex: 1; }
         .hist-val { font-weight: 700; flex: 1; text-align: center; color: var(--text); }
         .hist-km { font-weight: 600; flex: 1; text-align: right; color: var(--primary); }
 
-        .fab { position: fixed; bottom: 25px; right: 25px; width: 65px; height: 65px; background: var(--success); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 35px; border: none; box-shadow: 0 5px 15px rgba(0,0,0,0.2); z-index: 1000; cursor: pointer; }
-        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 1001; backdrop-filter: blur(4px); }
-        .modal { background: white; width: 85%; max-width: 350px; padding: 25px; border-radius: 25px; }
+        .fab { 
+            position: fixed; bottom: 25px; right: 25px; width: 65px; height: 65px; 
+            background: var(--success); color: white; border-radius: 50%; 
+            display: flex; align-items: center; justify-content: center; 
+            font-size: 35px; border: none; box-shadow: 0 5px 15px rgba(0,0,0,0.2); 
+            z-index: 1000; cursor: pointer; transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .fab:active { transform: scale(0.8) rotate(90deg); }
+
+        .overlay { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.6); display: none; justify-content: center; 
+            align-items: center; z-index: 1001; backdrop-filter: blur(4px); 
+        }
+        .modal { 
+            background: white; width: 85%; max-width: 350px; padding: 25px; 
+            border-radius: 25px; transform: scale(0.9); transition: transform 0.3s ease;
+        }
+        /* Quando o overlay estiver visível, anima o modal */
+        .overlay[style*="display: flex"] .modal { transform: scale(1); }
+
         input, select { width: 100%; padding: 14px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 1rem; margin-bottom: 12px; box-sizing: border-box; }
         .btn-acao { width: 100%; padding: 16px; background: var(--primary); color: white; border: none; border-radius: 12px; font-weight: bold; font-size: 1rem; }
     </style>
@@ -44,9 +85,7 @@
         <header>
             <h1 style="margin:0;">🏍️ Fazer 150</h1>
             <div>
-                <a href="https://docs.google.com/spreadsheets/d/1m0bRtya14GSIWtLe7TFD1EgVDKp-HrzHU1Vj7HI3Xco/edit" target="_blank" class="btn-edit-sheet" title="Editar Planilha">
-                    ✎
-                </a>
+                <a href="https://docs.google.com/spreadsheets/d/1m0bRtya14GSIWtLe7TFD1EgVDKp-HrzHU1Vj7HI3Xco/edit" target="_blank" class="btn-edit-sheet">✎</a>
                 <span id="status-sync" style="font-size: 0.7rem; font-weight: bold; margin-left: 10px;">Sincronizando...</span>
             </div>
         </header>
@@ -108,8 +147,10 @@
                 atualizarUI(data);
                 document.getElementById('status-sync').innerText = "✓ Online";
                 document.getElementById('status-sync').style.color = "var(--success)";
+                // Para a animação de pulso quando estiver sincronizado
+                document.getElementById('status-sync').style.animation = "none";
             } catch (e) { 
-                document.getElementById('status-sync').innerText = "⚠ Erro 403 / Permissão";
+                document.getElementById('status-sync').innerText = "⚠ Erro de Acesso";
                 document.getElementById('status-sync').style.color = "var(--danger)";
             }
         }
