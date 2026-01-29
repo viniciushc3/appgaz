@@ -10,7 +10,7 @@
         body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; }
         .container { width: 100%; max-width: 450px; padding-bottom: 80px; }
         header { width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        #status-sync { font-size: 0.7rem; font-weight: bold; padding: 4px 8px; border-radius: 10px; background: #e2e8f0; }
+        #status-sync { font-size: 0.7rem; font-weight: bold; padding: 4px 8px; border-radius: 10px; background: #e2e8f0; transition: all 0.3s; }
         .card { background: var(--card); padding: 18px; border-radius: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 16px; width: 100%; box-sizing: border-box; }
         .card-title { font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 12px; display: block; }
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -21,10 +21,13 @@
         .maint-info { display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 5px; }
         .progress-bar { background: #e2e8f0; height: 10px; border-radius: 10px; overflow: hidden; }
         .progress-fill { height: 100%; width: 0%; transition: width 1s ease-in-out; }
-        .history-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f1f5f9; }
-        .hist-date { font-size: 0.75rem; color: #64748b; }
-        .hist-val { font-weight: 700; font-size: 0.9rem; }
-        .hist-km { font-weight: 600; color: var(--primary); font-size: 0.9rem; }
+        
+        /* Estilos do Histórico */
+        .history-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
+        .hist-date { font-size: 0.75rem; color: #64748b; flex: 1; }
+        .hist-val { font-weight: 700; flex: 1; text-align: center; color: var(--text); font-size: 0.9rem; }
+        .hist-km { font-weight: 600; flex: 1; text-align: right; color: var(--primary); font-size: 0.9rem; }
+
         .fab { position: fixed; bottom: 25px; right: 25px; width: 65px; height: 65px; background: var(--success); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 35px; border: none; box-shadow: 0 5px 15px rgba(0,0,0,0.2); z-index: 1000; cursor: pointer; }
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 1001; backdrop-filter: blur(4px); }
         .modal { background: white; width: 85%; max-width: 350px; padding: 25px; border-radius: 25px; }
@@ -57,8 +60,12 @@
             <div class="maint-item"><div class="maint-info"><span>Relação (20.000 km)</span><span id="txt-relacao">--</span></div><div class="progress-bar"><div id="bar-relacao" class="progress-fill"></div></div></div>
         </div>
 
-        <div class="card"><canvas id="chart"></canvas></div>
-        <div class="card"><span class="card-title">Histórico Recente</span><div id="history-list"></div></div>
+        <div class="card"><span class="card-title">Consumo (Últimas Viagens)</span><canvas id="chart"></canvas></div>
+
+        <div class="card">
+            <span class="card-title">Histórico Recente</span>
+            <div id="history-list"></div>
+        </div>
     </div>
 
     <button class="fab" onclick="abrirModal()">+</button>
@@ -83,7 +90,7 @@
     </div>
 
     <script>
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw36PQbfoQAg8o3eh4MsdPFX6K_HNO_kFKIQdaD_42-jLg9ocW5ZQdHcar44YpVKzzN6A/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxPIDFE3bzK-1mwFlpZpXdV2GPYj8KKxCMcATXVWoyLuci4Yw7gSgWPSta1sHQjdWe6iw/exec";
         let userCoords = ""; let chart;
 
         function maskMoeda(i) { let v = i.value.replace(/\D/g, ""); v = (v / 100).toFixed(2).replace(".", ","); i.value = "R$ " + v; }
@@ -92,8 +99,8 @@
         function abrirModal() { document.getElementById('overlay').style.display = 'flex'; if (navigator.geolocation) { navigator.geolocation.getCurrentPosition(pos => { userCoords = `${pos.coords.latitude},${pos.coords.longitude}`; }, null, {enableHighAccuracy: true}); } }
 
         window.onload = () => {
-            const cached = localStorage.getItem('moto_cache_v2');
-            if (cached) { try { atualizarUI(JSON.parse(cached)); } catch(e) { localStorage.removeItem('moto_cache_v2'); } }
+            const cached = localStorage.getItem('moto_cache_v3');
+            if (cached) { try { atualizarUI(JSON.parse(cached)); } catch(e) { localStorage.removeItem('moto_cache_v3'); } }
             carregar();
         };
 
@@ -101,7 +108,7 @@
             try {
                 const res = await fetch(SCRIPT_URL);
                 const data = await res.json();
-                localStorage.setItem('moto_cache_v2', JSON.stringify(data));
+                localStorage.setItem('moto_cache_v3', JSON.stringify(data));
                 atualizarUI(data);
                 const st = document.getElementById('status-sync');
                 st.innerText = "✓ Online"; st.style.background = "#dcfce7"; st.style.color = "#166534";
@@ -109,60 +116,64 @@
         }
 
         function atualizarUI(data) {
-    // Se o dado vier vazio ou com erro, limpa o cache e para
-    if (!data || data.erro) {
-        localStorage.removeItem('moto_cache_v2');
-        return;
-    }
+            const abast = data.abastecimentos || [];
+            const manu = data.manutencoes || [];
+            const hoje = new Date();
+            let mensal = 0, semanal = 0, kmLabels = [], consData = [];
 
-    const abast = data.abastecimentos || [];
-    const manu = data.manutencoes || [];
-    const hoje = new Date();
-    let mensal = 0, semanal = 0, kmLabels = [], consData = [];
+            if (abast.length > 0) {
+                const kmAtual = abast[abast.length - 1][1];
+                abast.forEach((l, i) => {
+                    const d = new Date(l[0]);
+                    // Coluna D: Valor (índice 3)
+                    if ((hoje - d) / 864e5 <= 7) semanal += Number(l[3] || 0);
+                    if ((hoje - d) / 864e5 <= 30) mensal += Number(l[3] || 0);
+                    if (i > 0 && l[2] > 0) {
+                        const m = (l[1] - abast[i-1][1]) / l[2]; // l[2] é Litros
+                        kmLabels.push(d.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'}));
+                        consData.push(m.toFixed(1));
+                    }
+                });
 
-    if (abast.length > 0) {
-        const kmAtual = abast[abast.length - 1][1];
+                document.getElementById('res-mensal').innerText = "R$ " + mensal.toFixed(2);
+                document.getElementById('res-semanal').innerText = "R$ " + semanal.toFixed(2);
+                if (abast.length > 1) {
+                    const ult = abast[abast.length-1];
+                    const dist = ult[1] - abast[abast.length-2][1];
+                    document.getElementById('res-media').innerText = (dist / ult[2]).toFixed(1) + " km/l";
+                    document.getElementById('res-custo').innerText = "R$ " + (ult[3] / dist).toFixed(2);
+                }
 
-        abast.forEach((l, i) => {
-            const d = new Date(l[0]);
-            // Valor agora é Coluna D (índice 3)
-            if (!isNaN(d.getTime())) {
-                if ((hoje - d) / 864e5 <= 7) semanal += Number(l[3] || 0);
-                if ((hoje - d) / 864e5 <= 30) mensal += Number(l[3] || 0);
+                // Histórico Recente Restaurado
+                document.getElementById('history-list').innerHTML = abast.slice(-3).reverse().map(l => `
+                    <div class="history-item">
+                        <span class="hist-date">${new Date(l[0]).toLocaleDateString('pt-BR')}</span>
+                        <span class="hist-val">R$ ${Number(l[3]).toFixed(2)}</span>
+                        <span class="hist-km">${l[1]} km</span>
+                    </div>
+                `).join('');
+
+                // Saúde da Moto (Coluna E: índice 4)
+                const buscarUltima = (t) => { 
+                    const f = manu.filter(m => String(m[4]).trim().toLowerCase() === t.toLowerCase());
+                    return f.length > 0 ? f[f.length - 1][1] : 0; 
+                };
+
+                const calc = (km, t, inter, bar, txt) => {
+                    const ult = buscarUltima(t); const rod = km - ult; const perc = Math.min((rod / inter) * 100, 100);
+                    document.getElementById(bar).style.width = perc + "%";
+                    document.getElementById(txt).innerText = `${rod.toLocaleString()} / ${inter.toLocaleString()} km`;
+                    document.getElementById(bar).style.backgroundColor = perc >= 100 ? "var(--danger)" : (perc > 80 ? "var(--warning)" : "var(--primary)");
+                };
+
+                calc(kmAtual, "Oleo", 3000, 'bar-oleo', 'txt-oleo');
+                calc(kmAtual, "Filtro", 3000, 'bar-filtro', 'txt-filtro');
+                calc(kmAtual, "Vela", 10000, 'bar-vela', 'txt-vela');
+                calc(kmAtual, "Relacao", 20000, 'bar-relacao', 'txt-relacao');
+                
+                renderChart(kmLabels.slice(-6), consData.slice(-6));
             }
-            if (i > 0 && l[2] > 0) {
-                const m = (l[1] - abast[i-1][1]) / l[2];
-                kmLabels.push(d.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'}));
-                consData.push(m.toFixed(1));
-            }
-        });
-
-        document.getElementById('res-mensal').innerText = "R$ " + mensal.toFixed(2);
-        document.getElementById('res-semanal').innerText = "R$ " + semanal.toFixed(2);
-        
-        // Tipo agora é Coluna E (índice 4)
-        const buscarUltima = (t) => { 
-            const f = manu.filter(m => String(m[4]).trim().toLowerCase() === t.toLowerCase());
-            return f.length > 0 ? f[f.length - 1][1] : 0; 
-        };
-
-        const calc = (km, t, inter, bar, txt) => {
-            const ult = buscarUltima(t); 
-            const rod = km - ult; 
-            const perc = Math.min((rod / inter) * 100, 100);
-            document.getElementById(bar).style.width = perc + "%";
-            document.getElementById(txt).innerText = `${rod.toLocaleString()} / ${inter.toLocaleString()} km`;
-            document.getElementById(bar).style.backgroundColor = perc >= 100 ? "var(--danger)" : (perc > 80 ? "var(--warning)" : "var(--primary)");
-        };
-
-        calc(kmAtual, "Oleo", 3000, 'bar-oleo', 'txt-oleo');
-        calc(kmAtual, "Filtro", 3000, 'bar-filtro', 'txt-filtro');
-        calc(kmAtual, "Vela", 10000, 'bar-vela', 'txt-vela');
-        calc(kmAtual, "Relacao", 20000, 'bar-relacao', 'txt-relacao');
-        
-        renderChart(kmLabels.slice(-6), consData.slice(-6));
-    }
-}
+        }
 
         function renderChart(l, d) {
             const ctx = document.getElementById('chart').getContext('2d');
@@ -183,7 +194,7 @@
             if (filtroTrocado) regs.push({ tipo: "Filtro", km, litros: 0, valor: 0, coords: userCoords, destino: 'Manutencao' });
             try {
                 for (const d of regs) { await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(d) }); }
-                localStorage.removeItem('moto_cache_v2'); location.reload();
+                localStorage.removeItem('moto_cache_v3'); location.reload();
             } catch (e) { alert("Erro!"); btn.disabled = false; }
         }
     </script>
