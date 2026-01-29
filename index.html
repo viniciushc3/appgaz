@@ -9,6 +9,7 @@
         body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; }
         .container { width: 100%; max-width: 450px; padding-bottom: 80px; }
         header { width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .btn-edit { text-decoration: none; font-size: 1.2rem; color: #64748b; margin-right: 8px; }
         #status-sync { font-size: 0.7rem; font-weight: bold; padding: 4px 8px; border-radius: 10px; background: #e2e8f0; }
         .card { background: var(--card); padding: 18px; border-radius: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 16px; width: 100%; box-sizing: border-box; }
         .card-title { font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 12px; display: block; }
@@ -20,10 +21,14 @@
         .maint-info { display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 5px; }
         .progress-bar { background: #e2e8f0; height: 10px; border-radius: 10px; overflow: hidden; }
         .progress-fill { height: 100%; width: 0%; transition: width 1s ease-in-out; }
+        
         .history-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f1f5f9; }
+        .hist-info { display: flex; flex-direction: column; flex: 1.5; }
         .hist-date { font-size: 0.75rem; color: #64748b; }
-        .hist-val { font-weight: 700; font-size: 0.9rem; }
-        .hist-km { font-weight: 600; color: var(--primary); font-size: 0.9rem; }
+        .hist-litros { font-size: 0.7rem; color: #94a3b8; font-weight: bold; }
+        .hist-val { font-weight: 700; flex: 1; text-align: center; font-size: 0.9rem; }
+        .hist-km { font-weight: 600; flex: 1; text-align: right; color: var(--primary); font-size: 0.9rem; }
+
         .fab { position: fixed; bottom: 25px; right: 25px; width: 65px; height: 65px; background: var(--success); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 35px; border: none; box-shadow: 0 5px 15px rgba(0,0,0,0.2); z-index: 1000; cursor: pointer; }
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 1001; backdrop-filter: blur(4px); }
         .modal { background: white; width: 85%; max-width: 350px; padding: 25px; border-radius: 25px; }
@@ -35,7 +40,10 @@
     <div class="container">
         <header>
             <h1 style="margin:0;">🏍️ Fazer 150</h1>
-            <span id="status-sync">Sincronizando...</span>
+            <div style="display: flex; align-items: center;">
+                <a href="SUA_URL_DA_PLANILHA" target="_blank" class="btn-edit">✎</a>
+                <span id="status-sync">Sincronizando...</span>
+            </div>
         </header>
 
         <div class="card">
@@ -56,7 +64,7 @@
                     <span id="res-autonomia" class="stat-val" style="color: var(--success); font-size: 1.5rem;">-- km</span>
                 </div>
                 <div style="text-align: center;">
-                    <span class="stat-label">Custo p/ Dia (Mês)</span>
+                    <span class="stat-label">Custo p/ Dia</span>
                     <span id="res-custo-dia" class="stat-val" style="color: var(--primary);">R$ 0,00</span>
                 </div>
             </div>
@@ -95,11 +103,19 @@
     </div>
 
     <script>
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwcFYhAtUFDMmm2FuE4-7ONOMJWPhNHTVx2mgsLaUjKhlR61jW4SKR43Ol2C7Drm0rJng/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwYyBpxlsEOo6X05LLvNvbUVM1OEoSFMsXREkoI6tAX9Te0odqro8ycj8OUl9brq4L4aA/exec";
         let userCoords = "";
 
         function maskMoeda(i) { let v = i.value.replace(/\D/g, ""); v = (v / 100).toFixed(2).replace(".", ","); i.value = "R$ " + v; }
-        function maskLitros(i) { let v = i.value.replace(/\D/g, ""); v = (v / 1000).toFixed(3).replace(".", ","); i.value = v + " L"; }
+        
+        // CORREÇÃO: O "L" não impede mais o backspace
+        function maskLitros(i) { 
+            let v = i.value.replace(/\D/g, ""); 
+            if (v === "") { i.value = ""; return; }
+            v = (v / 1000).toFixed(3).replace(".", ","); 
+            i.value = v + " L"; 
+        }
+
         function ajustarCampos(tipo) { document.getElementById('litros').style.display = (tipo === 'combustivel') ? 'block' : 'none'; document.getElementById('box-filtro').style.display = (tipo === 'Oleo') ? 'flex' : 'none'; }
         function abrirModal() { document.getElementById('overlay').style.display = 'flex'; if (navigator.geolocation) { navigator.geolocation.getCurrentPosition(pos => { userCoords = `${pos.coords.latitude},${pos.coords.longitude}`; }, null, {enableHighAccuracy: true}); } }
 
@@ -128,31 +144,34 @@
 
             if (abast.length > 0) {
                 const kmAtual = abast[abast.length - 1][1];
-                abast.forEach((l, i) => {
+                abast.forEach((l) => {
                     const d = new Date(l[0]);
                     if ((hoje - d) / 864e5 <= 7) semanal += Number(l[3]);
                     if ((hoje - d) / 864e5 <= 30) mensal += Number(l[3]);
                 });
 
-                document.getElementById('res-mensal').innerText = "R$ " + mensal.toFixed(2);
-                document.getElementById('res-semanal').innerText = "R$ " + semanal.toFixed(2);
-                document.getElementById('res-custo-dia').innerText = "R$ " + (mensal / 30).toFixed(2);
+                document.getElementById('res-mensal').innerText = "R$ " + mensal.toFixed(2).replace(".", ",");
+                document.getElementById('res-semanal').innerText = "R$ " + semanal.toFixed(2).replace(".", ",");
+                document.getElementById('res-custo-dia').innerText = "R$ " + (mensal / 30).toFixed(2).replace(".", ",");
 
                 if (abast.length > 1) {
                     const ult = abast[abast.length-1];
                     const dist = ult[1] - abast[abast.length-2][1];
                     mediaFinal = (dist / ult[2]);
                     document.getElementById('res-media').innerText = mediaFinal.toFixed(1) + " km/l";
-                    document.getElementById('res-custo').innerText = "R$ " + (ult[3] / dist).toFixed(2);
-                    
+                    document.getElementById('res-custo').innerText = "R$ " + (ult[3] / dist).toFixed(2).replace(".", ",");
                     const autonomiaTotal = (15.7 * mediaFinal);
                     document.getElementById('res-autonomia').innerText = Math.round(autonomiaTotal) + " km";
                 }
 
+                // CORREÇÃO: Litros formatados corretamente no histórico
                 document.getElementById('history-list').innerHTML = abast.slice(-3).reverse().map(l => `
                     <div class="history-item">
-                        <span class="hist-date">${new Date(l[0]).toLocaleDateString('pt-BR')}</span>
-                        <span class="hist-val">R$ ${Number(l[3]).toFixed(2)}</span>
+                        <div class="hist-info">
+                            <span class="hist-date">${new Date(l[0]).toLocaleDateString('pt-BR')}</span>
+                            <span class="hist-litros">${Number(l[2]).toFixed(3).replace(".", ",")} L</span>
+                        </div>
+                        <span class="hist-val">R$ ${Number(l[3]).toFixed(2).replace(".", ",")}</span>
                         <span class="hist-km">${l[1]} km</span>
                     </div>
                 `).join('');
@@ -178,7 +197,7 @@
             const litros = document.getElementById('litros').value.replace(" L", "").replace(",", ".");
             const km = document.getElementById('km').value;
             const filtroTrocado = document.getElementById('filtro_trocado').checked;
-            if(!km || (tipo === 'combustivel' && valor == "0.00")) return alert("Dados inválidos!");
+            if(!km || (tipo === 'combustivel' && (isNaN(valor) || valor <= 0))) return alert("Preencha o valor corretamente!");
             btn.disabled = true; btn.innerText = "Gravando...";
             const regs = [{ tipo, km, litros: (tipo === 'combustivel' ? litros : 0), valor, coords: userCoords, destino: (tipo === 'combustivel' ? 'Página1' : 'Manutencao') }];
             if (filtroTrocado) regs.push({ tipo: "Filtro", km, litros: 0, valor: 0, coords: userCoords, destino: 'Manutencao' });
