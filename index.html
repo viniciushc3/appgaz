@@ -17,6 +17,7 @@
         .stat-box { background: #f8fafc; padding: 12px; border-radius: 12px; border: 1px solid #f1f5f9; text-align: center; }
         .stat-val { display: block; font-size: 1.1rem; font-weight: 800; color: var(--text); }
         .stat-label { font-size: 0.65rem; color: #64748b; text-transform: uppercase; }
+        .stat-sub { display: block; font-size: 0.6rem; color: #94a3b8; margin-top: 2px; min-height: 0.75rem; }
         .maint-item { margin-bottom: 15px; }
         .maint-info { display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 5px; }
         .progress-bar { background: #e2e8f0; height: 10px; border-radius: 10px; overflow: hidden; }
@@ -47,8 +48,8 @@
         <div class="card">
             <span class="card-title">Resumo Financeiro</span>
             <div class="stats-grid">
-                <div class="stat-box"><span class="stat-label">Média km/l</span><span id="res-media" class="stat-val">--</span></div>
-                <div class="stat-box"><span class="stat-label">Gasto Mensal</span><span id="res-mensal" class="stat-val">R$ 0</span></div>
+                <div class="stat-box"><span class="stat-label">Média km/l</span><span id="res-media" class="stat-val">--</span><span id="res-media-sub" class="stat-sub"></span></div>
+                <div class="stat-box"><span class="stat-label">Gasto Mensal</span><span id="res-mensal" class="stat-val">R$ 0</span><span id="res-mensal-sub" class="stat-sub"></span></div>
                 <div class="stat-box"><span class="stat-label">Custo p/ km</span><span id="res-custo" class="stat-val">R$ 0</span></div>
                 <div class="stat-box"><span class="stat-label">Gasto Semanal</span><span id="res-semanal" class="stat-val">R$ 0</span></div>
             </div>
@@ -121,8 +122,8 @@
         function abrirModal() { document.getElementById('overlay').style.display = 'flex'; if (navigator.geolocation) { navigator.geolocation.getCurrentPosition(pos => { userCoords = `${pos.coords.latitude},${pos.coords.longitude}`; }, null, {enableHighAccuracy: true}); } }
 
         window.onload = () => {
-            const cached = localStorage.getItem('moto_cache_v7');
-            if (cached) { try { atualizarUI(JSON.parse(cached)); } catch(e) { localStorage.removeItem('moto_cache_v7'); } }
+            const cached = localStorage.getItem('moto_cache_v8');
+            if (cached) { try { atualizarUI(JSON.parse(cached)); } catch(e) { localStorage.removeItem('moto_cache_v8'); } }
             carregar();
         };
 
@@ -130,7 +131,7 @@
             try {
                 const res = await fetch(SCRIPT_URL);
                 const data = await res.json();
-                localStorage.setItem('moto_cache_v7', JSON.stringify(data));
+                localStorage.setItem('moto_cache_v8', JSON.stringify(data));
                 atualizarUI(data);
                 const st = document.getElementById('status-sync');
                 st.innerText = "✓ Online"; st.style.background = "#dcfce7"; st.style.color = "#166534";
@@ -153,15 +154,29 @@
 
             if (abast.length > 0) {
                 const kmAtual = parseGoogleNum(abast[abast.length - 1][1]);
-                abast.forEach((l) => {
-                    const d = new Date(l[0]);
-                    const v = parseGoogleNum(l[3]);
-                    if ((hoje - d) / 864e5 <= 7) semanal += v;
-                    if ((hoje - d) / 864e5 <= 30) mensal += v;
-                });
 
-                document.getElementById('res-mensal').innerText = "R$ " + mensal.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-                document.getElementById('res-semanal').innerText = "R$ " + semanal.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                // Gastos somam combustivel + manutencao (janela movel de 7 / 30 dias)
+                let comb7 = 0, comb30 = 0, manu7 = 0, manu30 = 0;
+                const acumular = (linhas, add) => {
+                    linhas.forEach((l) => {
+                        const d = new Date(l[0]);
+                        if (isNaN(d)) return; // data invalida: nao entra no total
+                        const dias = (hoje - d) / 864e5;
+                        if (dias < 0) return; // lancamento com data futura
+                        const v = parseGoogleNum(l[3]);
+                        add(dias, v);
+                    });
+                };
+                acumular(abast, (dias, v) => { if (dias <= 7) comb7 += v; if (dias <= 30) comb30 += v; });
+                acumular(manu,  (dias, v) => { if (dias <= 7) manu7 += v; if (dias <= 30) manu30 += v; });
+
+                semanal = comb7 + manu7;
+                mensal = comb30 + manu30;
+
+                const brl = (n) => n.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                document.getElementById('res-mensal').innerText = "R$ " + brl(mensal);
+                document.getElementById('res-semanal').innerText = "R$ " + brl(semanal);
+                document.getElementById('res-mensal-sub').innerText = "comb " + brl(comb30) + " \u00b7 manut " + brl(manu30);
                 
                 // Correção: Apenas 2 casas decimais no custo por dia
                 document.getElementById('res-custo-dia').innerText = "R$ " + (mensal / 30).toLocaleString('pt-BR', {
@@ -169,16 +184,33 @@
                     maximumFractionDigits: 2
                 });
 
+                // Media ACUMULADA (soma das distancias / soma dos litros), ignorando
+                // pares invalidos: odometro fora de ordem, dist <= 0 ou litros <= 0.
                 if (abast.length > 1) {
-                    const ult = abast[abast.length-1];
-                    const pen = abast[abast.length-2];
-                    const dist = parseGoogleNum(ult[1]) - parseGoogleNum(pen[1]);
-                    const litrosUlt = parseGoogleNum(ult[2]);
-                    if (litrosUlt > 0) {
-                        mediaFinal = (dist / litrosUlt);
+                    let somaDist = 0, somaLitros = 0, somaValor = 0, pares = 0;
+                    let mediaUlt = null;
+
+                    for (let i = 1; i < abast.length; i++) {
+                        const dist = parseGoogleNum(abast[i][1]) - parseGoogleNum(abast[i-1][1]);
+                        const litros = parseGoogleNum(abast[i][2]);
+                        if (dist <= 0 || litros <= 0) continue; // par descartado
+                        somaDist += dist;
+                        somaLitros += litros;
+                        somaValor += parseGoogleNum(abast[i][3]);
+                        pares++;
+                        mediaUlt = dist / litros; // ultimo par valido
+                    }
+
+                    if (somaLitros > 0 && somaDist > 0) {
+                        mediaFinal = somaDist / somaLitros;
                         document.getElementById('res-media').innerText = mediaFinal.toFixed(1) + " km/l";
-                        document.getElementById('res-custo').innerText = "R$ " + (parseGoogleNum(ult[3]) / dist).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                        document.getElementById('res-media-sub').innerText =
+                            "acum. " + pares + " tanque" + (pares > 1 ? "s" : "") +
+                            (mediaUlt ? " \u00b7 \u00falt. " + mediaUlt.toFixed(1) : "");
+                        document.getElementById('res-custo').innerText = "R$ " + (somaValor / somaDist).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
                         document.getElementById('res-autonomia').innerText = Math.round(15.7 * mediaFinal) + " km";
+                    } else {
+                        document.getElementById('res-media-sub').innerText = "dados insuficientes";
                     }
                 }
 
@@ -193,16 +225,33 @@
                     </div>
                 `).join('');
 
-                const buscarUltima = (t) => { 
-                    const f = manu.filter(m => String(m[4]).trim().toLowerCase() === t.toLowerCase()); 
-                    return f.length > 0 ? parseGoogleNum(f[f.length - 1][1]) : 0; 
+                // Maior km registrado para o tipo (nao a ultima linha da planilha,
+                // que quebra com lancamento retroativo). null = nunca registrado.
+                const buscarUltima = (t) => {
+                    const kms = manu
+                        .filter(m => String(m[4]).trim().toLowerCase() === t.toLowerCase())
+                        .map(m => parseGoogleNum(m[1]))
+                        .filter(k => k > 0);
+                    return kms.length > 0 ? Math.max.apply(null, kms) : null;
                 };
-                
+
                 const calc = (km, t, inter, bar, txt) => {
-                    const ult = buscarUltima(t); const rod = km - ult; const perc = Math.min((rod / inter) * 100, 100);
-                    document.getElementById(bar).style.width = perc + "%";
-                    document.getElementById(txt).innerText = `${rod.toLocaleString()} / ${inter.toLocaleString()} km`;
-                    document.getElementById(bar).style.backgroundColor = perc >= 100 ? "var(--danger)" : (perc > 80 ? "var(--warning)" : "var(--primary)");
+                    const ult = buscarUltima(t);
+                    const elBar = document.getElementById(bar);
+                    const elTxt = document.getElementById(txt);
+
+                    if (ult === null) { // sem historico: nao alarma
+                        elBar.style.width = "0%";
+                        elBar.style.backgroundColor = "#cbd5e1";
+                        elTxt.innerText = "sem registro";
+                        return;
+                    }
+
+                    const rod = Math.max(km - ult, 0);
+                    const perc = Math.min((rod / inter) * 100, 100);
+                    elBar.style.width = perc + "%";
+                    elTxt.innerText = `${rod.toLocaleString('pt-BR')} / ${inter.toLocaleString('pt-BR')} km`;
+                    elBar.style.backgroundColor = perc >= 100 ? "var(--danger)" : (perc > 80 ? "var(--warning)" : "var(--primary)");
                 };
                 calc(kmAtual, "Oleo", 3000, 'bar-oleo', 'txt-oleo');
                 calc(kmAtual, "Filtro", 3000, 'bar-filtro', 'txt-filtro');
@@ -222,7 +271,7 @@
             const regs = [{ tipo, km, litros: (tipo === 'combustivel' ? litrosRaw : 0), valor: valorRaw, coords: userCoords, destino: (tipo === 'combustivel' ? 'Página1' : 'Manutencao') }];
             try {
                 for (const d of regs) { await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(d) }); }
-                localStorage.removeItem('moto_cache_v7'); location.reload();
+                localStorage.removeItem('moto_cache_v8'); location.reload();
             } catch (e) { alert("Erro!"); btn.disabled = false; }
         }
     </script>
